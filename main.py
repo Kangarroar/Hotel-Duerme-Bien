@@ -1,5 +1,5 @@
-from modulos.func import *
-import modulos.db
+from modulos.terminal import main_menu
+from modulos.login import login
 
 def main():
     login_success = login()
