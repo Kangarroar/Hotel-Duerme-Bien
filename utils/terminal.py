@@ -121,6 +121,9 @@ def ag_habitacion():
     except Exception as e:
         print(f"Error al agregar la habitación: {e}")
 
+
+############### Ver Lista Habitaciones ###############
+
 def ver_lista_habitaciones():
     clear_console()
     print_box()
@@ -148,7 +151,10 @@ def ver_lista_habitaciones():
     print(tabla)
     input("Presione Enter para continuar...")
 
+
+
 ############### Eliminar Habitacion ###############
+
 def eliminar_habitacion():
     ver_lista_habitaciones()
 
@@ -174,8 +180,10 @@ def eliminar_habitacion():
         cursor.execute("DELETE FROM Habitaciones WHERE numero_habitacion = %s", (numero_habitacion,))
         conexion.commit()
         print("Habitación eliminada correctamente.")
+        input("Presione Enter para continuar...")
     except Exception as e:
         print(f"Error al eliminar la habitación: {e}")
+        input("Presione Enter para continuar...")
 
 
 ############### Registrar Reserva ###############
@@ -188,7 +196,7 @@ def registrar_reserva():
     while True:
         fecha_reserva = input("Ingrese la fecha de la reserva (YYYY-MM-DD): ")
         try:
-            fecha_reserva = datetime.datetime.strptime(fecha_reserva, '%Y-%m-%d').date()
+            fecha_reserva = datetime.strptime(fecha_reserva, '%Y-%m-%d').date()
             break
         except ValueError:
             print("Error: Fecha no válida. Por favor, ingrese una fecha en el formato YYYY-MM-DD.")
@@ -196,7 +204,7 @@ def registrar_reserva():
     while True:
         fecha_checkout = input("Ingrese la fecha de checkout (YYYY-MM-DD): ")
         try:
-            fecha_checkout = datetime.datetime.strptime(fecha_checkout, '%Y-%m-%d').date()
+            fecha_checkout = datetime.strptime(fecha_checkout, '%Y-%m-%d').date()
             if fecha_checkout > fecha_reserva:
                 break
             else:
@@ -206,11 +214,11 @@ def registrar_reserva():
     
     while True:
         try:
-            precio = int(input("Ingrese el precio de la reserva: "))
+            cantidad_pasajeros = int(input("Ingrese la cantidad de pasajeros: "))
             break
         except ValueError:
-            print("Error: Debes ingresar un número entero para el precio.")
-
+            print("Error: Debes ingresar un número entero para la cantidad de pasajeros.")
+    
     while True:
         try:
             habitacion_reservada = int(input("Ingrese el número de la habitación reservada: "))
@@ -219,11 +227,25 @@ def registrar_reserva():
             print("Error: Debes ingresar un número entero para el número de habitación.")
     
     fk_idEncargado = '0'
+    
+    # Calcular costo
+    costo_por_pasajero = 20000
+    costo_total = cantidad_pasajeros * costo_por_pasajero
 
-    sql_insert = "INSERT INTO reserva (solicitante, fecha_reserva, fecha_checkout, precio, habitacion_reservada, fk_idEncargado) VALUES (%s, %s, %s, %s, %s, %s)"
-    val_insert = (solicitante, fecha_reserva, fecha_checkout, precio, habitacion_reservada, fk_idEncargado)
+    sql_insert = "INSERT INTO reserva (solicitante, fecha_reserva, fecha_checkout, precio, pasajeros, habitacion_reservada, fk_idEncargado) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+    val_insert = (solicitante, fecha_reserva, fecha_checkout, costo_total, cantidad_pasajeros, habitacion_reservada, fk_idEncargado)
     
     try:
+        # Validar disponibilidad
+        cursor.execute("SELECT fecha_reserva, fecha_checkout FROM reserva WHERE habitacion_reservada = %s", (habitacion_reservada,))
+        reservas_exist = cursor.fetchall()
+
+        for reserva in reservas_exist:
+            reserva_fecha_reserva, reserva_fecha_checkout = reserva
+            if not (fecha_checkout < reserva_fecha_reserva or fecha_reserva > reserva_fecha_checkout):
+                print(f"La habitación {habitacion_reservada} no está disponible para las fechas solicitadas.")
+                return
+        
         cursor.execute(sql_insert, val_insert)
         conexion.commit()
         print("\nReserva registrada correctamente.\nVolviendo al menú anterior")
@@ -232,7 +254,7 @@ def registrar_reserva():
 
     input("Presione Enter para continuar...")
 
-    
+
 ############### Registrar Pasajeros ###############
 
 def registrar_pasajeros():
@@ -337,14 +359,107 @@ def admin_menu():
 
         if selected_option == add_encargado_option:
             print("Opción para agregar encargado seleccionada.")
-            # Lógica para agregar encargado
-            input("Presione Enter para continuar...")
+            agregar_encargado()
         elif selected_option == delete_encargado_option:
             print("Opción para eliminar encargado seleccionada.")
-            # Lógica para eliminar encargado
-            input("Presione Enter para continuar...")
+            eliminar_encargado()
         elif selected_option == back_option:
             return
+
+############### Agregar Encargado ###############
+
+def agregar_encargado():
+    clear_console()
+    print_box()
+
+    try:
+        nombre = input("Ingrese el nombre del encargado: ")
+        edad = int(input("Ingrese la edad del encargado: "))
+        if edad < 0: #uno nunca sabe
+            print("Error: La edad debe ser un número positivo.")
+            input("Presione Enter para continuar...")
+            return
+        
+        fecha_nacimiento = input("Ingrese la fecha de nacimiento del encargado (YYYY-MM-DD): ")
+        try:
+            fecha_nacimiento = datetime.strptime(fecha_nacimiento, '%Y-%m-%d').date()
+        except ValueError:
+            print("Error: Formato de fecha incorrecto. Debe ser YYYY-MM-DD.")
+            input("Presione Enter para continuar...")
+            return
+        
+        correo = input("Ingrese el correo del encargado: ")
+
+        telefono = input("Ingrese el teléfono del encargado: ")
+    
+        contraseña = input("Ingrese la contraseña del encargado: ")
+
+        rut = input("Ingrese el rut del encargado: ")
+        
+        sql_insert = "INSERT INTO encargado (nombre, edad, fecha_nacimiento, correo, telefono, contraseña, rut) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        val_insert = (nombre, edad, fecha_nacimiento, correo, telefono, contraseña, rut)
+        
+        cursor.execute(sql_insert, val_insert)
+        conexion.commit()
+
+        print("\nEncargado agregado correctamente.")
+
+    except ValueError:
+        print("Error: Ingresa un valor válido para la edad.")
+    except Exception as e:
+        print(f"Error al agregar encargado: {e}")
+
+    input("\nPresione Enter para continuar...")
+
+############### Eliminar Encargado ###############
+
+def eliminar_encargado():
+    clear_console()
+    print_box()
+    
+    try:
+        # Mostrar la tabla de encargados con sus IDs y nombres
+        cursor.execute("SELECT idEncargado, nombre FROM encargado")
+        encargados = cursor.fetchall()
+        
+        if not encargados:
+            print("No hay encargados registrados.")
+            input("Presione Enter para continuar...")
+            return
+        
+        tabla_encargados = PrettyTable()
+        tabla_encargados.field_names = ["ID Encargado", "Nombre"]
+        
+        for encargado in encargados:
+            tabla_encargados.add_row([encargado[0], encargado[1]])
+        
+        print("Lista de encargados:")
+        print(tabla_encargados)
+        
+        id_encargado = int(input("Ingrese el ID del encargado a eliminar: "))
+        
+        #mas validadores siiiiiiiiii
+        if id_encargado not in [encargado[0] for encargado in encargados]:
+            print("El ID del encargado no existe.")
+            input("Presione Enter para continuar...")
+            return
+        
+        sql_delete = "DELETE FROM encargado WHERE idEncargado = %s"
+        val_delete = (id_encargado,)
+        
+        cursor.execute(sql_delete, val_delete)
+        conexion.commit()
+        
+        print("\nEncargado eliminado correctamente.")
+        
+    except ValueError:
+        print("Error: Debes ingresar un número entero para el ID del encargado.")
+    except Exception as e:
+        print(f"Error al eliminar encargado: {e}")
+    
+    input("\nPresione Enter para continuar...")
+
+
 
 ############### After Login Handler ###############
 def after_login_menu(tipo_usuario):
@@ -370,24 +485,27 @@ def verificar_credenciales(usuario, contraseña, tipo_usuario):
 def login():
     max_intentos = 3
     intentos = 0
-    print("Como desea iniciar sesion?")
+    print("¿Cómo desea iniciar sesión?")
     while intentos < max_intentos:
-        tipo_usuario = select_option(["Encargado", "Administrador"])
+        tipo_usuario = select_option(["Iniciar sesión como Encargado", "Iniciar sesión como Administrador"])
 
         usuario = input("Usuario: ")
         password = input("Contraseña: ")
 
-        if tipo_usuario == "Encargado":
+        if tipo_usuario == "Iniciar sesión como Encargado":
             if verificar_credenciales(usuario, password, tipo_usuario="encargado"):
                 print("Inicio de sesión como Encargado exitoso.")
                 return "encargado", usuario
-        elif tipo_usuario == "Administrador":
+        elif tipo_usuario == "Iniciar sesión como Administrador":
             if verificar_credenciales(usuario, password, tipo_usuario="administrador"):
                 print("Inicio de sesión como Administrador exitoso.")
                 return "administrador", usuario
         
         intentos += 1
         print(f"Usuario o contraseña incorrectos. Intento {intentos} de {max_intentos}")
+        input("Presione Enter para continuar...")
     
     print("Has excedido el número máximo de intentos. Vuelve a iniciar el programa.")
+    input("Presione Enter para continuar...")
+    clear_console()
     return None, None
