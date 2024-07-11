@@ -1,4 +1,4 @@
-from modulos.terminal import clear_console, print_box, select_option
+from modulos.terminal import *
 from prettytable import PrettyTable
 from modulos.db import cursor, conexion
 from datetime import datetime

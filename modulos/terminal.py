@@ -1,9 +1,9 @@
 import msvcrt
 import os
-from modulos.db import cursor, conexion
-from modulos.habitaciones import ag_habitacion, ver_lista_habitaciones
-from modulos.pasajeros import registrar_pasajeros, ver_tabla_resumen
-from modulos.reserva import registrar_reserva
+from modulos.db import *
+from modulos.habitaciones import *
+from modulos.pasajeros import *
+from modulos.reserva import *
 
 # limpiador
 def clear_console():
@@ -21,54 +21,110 @@ def print_options(options, selected_index):
     print_box()
     for i, option in enumerate(options):
         if i == selected_index:
-            print(f"> {option}")
+            print(f"\033[92m> {option}\033[0m")
         else:
-            print(f"  {option}")
+            print(option)
 
+# Print box
+def print_box():
+    print("┌───────────────────────────────┐")
+    print("│ Sistema de pasajeros de hotel │")
+    print("└───────────────────────────────┘\n")
+
+
+# Selector with arrow keys
 def select_option(options, return_index=False):
     selected_index = 0
+    print_options(options, selected_index)
+
     while True:
-        print_options(options, selected_index)
         key = ord(msvcrt.getch())
 
-        if key == 80:  # Flecha hacia abajo
-            selected_index = (selected_index + 1) % len(options)
-        elif key == 72:  # Flecha hacia arriba
+        if key == 72:  # Up arrow key
             selected_index = (selected_index - 1) % len(options)
-        elif key == 13:  # Enter
+        elif key == 80:  # Down arrow key
+            selected_index = (selected_index + 1) % len(options)
+        elif key == 13:  # Enter key
             if return_index:
-                return selected_index
+                return selected_index  # Devolver el índice seleccionado
             else:
-                return options[selected_index]
-        elif key == 27:  # Escape
-            return None
+                return options[selected_index]  # Devolver el elemento seleccionado
 
-def print_box():
-    print("╔" + "═" * 50 + "╗")
-    print("║" + " " * 50 + "║")
-    print("╚" + "═" * 50 + "╝")
+        print_options(options, selected_index)
 
-# main menu 
+
+# Menú principal
 def main_menu():
-    options = ["1.- Agregar Habitación", "2.- Registrar Pasajeros", "3.- Mostrar Lista de Habitaciones", "4.- Ver Tabla Resumen de Pasajeros", "5.- Registrar Reserva", "6.- Salir"]
-    
+    manage_rooms_option = '1.- Administrar habitaciones'
+    register_option = '2.- Registrar pasajeros'
+    view_rooms_option = '3.- Ver lista de habitaciones'
+    view_pasajeros_option = '4.- Ver lista de pasajeros'
+    register_reserva_option = '5.- Registrar reserva'
+    exit_option = 'Salir'
+    options = [manage_rooms_option, register_option, view_rooms_option, view_pasajeros_option, register_reserva_option, exit_option]
+
     while True:
-        clear_console()
-        print_box()
-        print("MENÚ PRINCIPAL")
         selected_option = select_option(options)
         
-        if selected_option == options[0]:
-            ag_habitacion()
-        elif selected_option == options[1]:
+        if selected_option == manage_rooms_option:
+            manage_rooms()
+        elif selected_option == register_option:
             registrar_pasajeros()
-        elif selected_option == options[2]:
+        elif selected_option == view_rooms_option:
             ver_lista_habitaciones()
-        elif selected_option == options[3]:
+        elif selected_option == view_pasajeros_option:
             ver_tabla_resumen()
-        elif selected_option == options[4]:
+        elif selected_option == register_reserva_option:
             registrar_reserva()
-        elif selected_option == options[5]:
+        elif selected_option == exit_option:
             break
-        else:
-            print("Opción no válida. Inténtelo de nuevo.")
+
+# Manage rooms submenu
+def manage_rooms():
+    add_option = '1.- Agregar habitacion'
+    delete_option = '2.- Eliminar habitacion'
+    back_option = '3.- Volver atras'
+    options = [add_option, delete_option, back_option]
+
+    while True:
+        selected_option = select_option(options)
+
+        if selected_option == add_option:
+            print("Opción para agregar habitación seleccionada.")
+            clear_console()
+            ag_habitacion()
+            input("Presione Enter para continuar...")
+        elif selected_option == delete_option:
+            print("Opción para eliminar habitación seleccionada.")
+            input("Presione Enter para continuar...")
+        elif selected_option == back_option:
+            return
+# Menú para el administrador
+def admin_menu():
+    add_encargado_option = '1.- Agregar encargado'
+    delete_encargado_option = '2.- Eliminar encargado'
+    back_option = '3.- Volver atrás'
+    options = [add_encargado_option, delete_encargado_option, back_option]
+
+    while True:
+        selected_option = select_option(options)
+
+        if selected_option == add_encargado_option:
+            print("Opción para agregar encargado seleccionada.")
+            # Lógica para agregar encargado
+            input("Presione Enter para continuar...")
+        elif selected_option == delete_encargado_option:
+            print("Opción para eliminar encargado seleccionada.")
+            # Lógica para eliminar encargado
+            input("Presione Enter para continuar...")
+        elif selected_option == back_option:
+            return
+
+# Función para dirigir al menú correspondiente después del login
+def after_login_menu(tipo_usuario):
+    if tipo_usuario == "encargado":
+        main_menu()
+    elif tipo_usuario == "administrador":
+        admin_menu()
+
+#####

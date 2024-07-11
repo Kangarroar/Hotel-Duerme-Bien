@@ -1,4 +1,4 @@
-from modulos.terminal import clear_console, print_box
+from modulos.terminal import *
 from modulos.db import cursor, conexion
 
 # 5.- Registrar Reserva
