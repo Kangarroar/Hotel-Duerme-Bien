@@ -1,6 +1,5 @@
 import msvcrt
 import os
-from utils.pasajeros import ver_tabla_resumen
 from prettytable import PrettyTable
 from utils.database import cursor, conexion
 from datetime import datetime
