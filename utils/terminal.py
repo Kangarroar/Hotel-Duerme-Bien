@@ -1,8 +1,9 @@
 import msvcrt
 import os
-from utils.pasajeros import registrar_pasajeros, ver_tabla_resumen
+from utils.pasajeros import ver_tabla_resumen
 from prettytable import PrettyTable
 from utils.database import cursor, conexion
+from datetime import datetime
 
 ############### UI ###############
 
@@ -90,6 +91,8 @@ def manage_rooms():
             input("Presione Enter para continuar...")
         elif selected_option == delete_option:
             print("Opción para eliminar habitación seleccionada.")
+            clear_console()
+            eliminar_habitacion()
             input("Presione Enter para continuar...")
         elif selected_option == back_option:
             return
@@ -145,25 +148,181 @@ def ver_lista_habitaciones():
     print(tabla)
     input("Presione Enter para continuar...")
 
+############### Eliminar Habitacion ###############
+def eliminar_habitacion():
+    ver_lista_habitaciones()
+
+    try:
+        numero_habitacion = int(input("Ingrese el número de habitación a eliminar: "))
+    except ValueError:
+        print("Error: Debes ingresar un número entero para el número de habitación.")
+        return
+
+    cursor.execute("SELECT ocupada FROM Habitaciones WHERE numero_habitacion = %s", (numero_habitacion,))
+    result = cursor.fetchone()
+
+    if not result:
+        print("Error: La habitación no existe.")
+        return
+
+    ocupada = result[0]
+    if ocupada == '1':
+        print("Error: La habitación está ocupada y no puede ser eliminada.")
+        return
+
+    try:
+        cursor.execute("DELETE FROM Habitaciones WHERE numero_habitacion = %s", (numero_habitacion,))
+        conexion.commit()
+        print("Habitación eliminada correctamente.")
+    except Exception as e:
+        print(f"Error al eliminar la habitación: {e}")
+
 
 ############### Registrar Reserva ###############
 def registrar_reserva():
     clear_console()
     print_box()
+    
     solicitante = input("Ingrese el nombre del solicitante: ")
-    fecha_reserva = input("Ingrese la fecha de la reserva (YYYY-MM-DD): ")
-    fecha_checkout = input("Ingrese la fecha de checkout (YYYY-MM-DD): ")
-    precio = int(input("Ingrese el precio de la reserva: "))
+
+    while True:
+        fecha_reserva = input("Ingrese la fecha de la reserva (YYYY-MM-DD): ")
+        try:
+            fecha_reserva = datetime.datetime.strptime(fecha_reserva, '%Y-%m-%d').date()
+            break
+        except ValueError:
+            print("Error: Fecha no válida. Por favor, ingrese una fecha en el formato YYYY-MM-DD.")
+    
+    while True:
+        fecha_checkout = input("Ingrese la fecha de checkout (YYYY-MM-DD): ")
+        try:
+            fecha_checkout = datetime.datetime.strptime(fecha_checkout, '%Y-%m-%d').date()
+            if fecha_checkout > fecha_reserva:
+                break
+            else:
+                print("Error: La fecha de checkout debe ser posterior a la fecha de reserva.")
+        except ValueError:
+            print("Error: Fecha no válida. Por favor, ingrese una fecha en el formato YYYY-MM-DD.")
+    
+    while True:
+        try:
+            precio = int(input("Ingrese el precio de la reserva: "))
+            break
+        except ValueError:
+            print("Error: Debes ingresar un número entero para el precio.")
+
+    while True:
+        try:
+            habitacion_reservada = int(input("Ingrese el número de la habitación reservada: "))
+            break
+        except ValueError:
+            print("Error: Debes ingresar un número entero para el número de habitación.")
+    
     fk_idEncargado = '0'
 
-    sql_insert = "INSERT INTO reserva (solicitante, fecha_reserva, fecha_checkout, precio, fk_idEncargado) VALUES (%s, %s, %s, %s, %s)"
-    val_insert = (solicitante, fecha_reserva, fecha_checkout, precio, fk_idEncargado)
-    cursor.execute(sql_insert)
-    conexion.commit()
+    sql_insert = "INSERT INTO reserva (solicitante, fecha_reserva, fecha_checkout, precio, habitacion_reservada, fk_idEncargado) VALUES (%s, %s, %s, %s, %s, %s)"
+    val_insert = (solicitante, fecha_reserva, fecha_checkout, precio, habitacion_reservada, fk_idEncargado)
+    
+    try:
+        cursor.execute(sql_insert, val_insert)
+        conexion.commit()
+        print("\nReserva registrada correctamente.\nVolviendo al menú anterior")
+    except Exception as e:
+        print(f"Error al registrar la reserva: {e}")
 
-    print("\nReserva registrada correctamente.\nVolviendo al menú anterior")
     input("Presione Enter para continuar...")
 
+    
+############### Registrar Pasajeros ###############
+
+def registrar_pasajeros():
+    clear_console()
+    print_box()
+    try:
+        cantidad_pasajeros = int(input("Ingrese la cantidad de pasajeros: "))
+    except ValueError:
+        print("Error: Debes ingresar un número entero para la cantidad de pasajeros.")
+        input("Presione Enter para continuar...")
+        return
+
+    ruts_pasajeros = []
+    nombres_pasajeros = []
+    for i in range(cantidad_pasajeros):
+        while True:
+            rut = input(f"Ingrese el RUT del pasajero {i + 1}: ")
+            if rut.isdigit():
+                break
+            else:
+                print("Error: El RUT solo puede contener números. Inténtalo de nuevo.")
+                input("Presione Enter para continuar...")
+        nombre = input(f"Ingrese el nombre del pasajero {i + 1}: ")
+        ruts_pasajeros.append(rut)
+        nombres_pasajeros.append(nombre)
+
+    print("\nLista de pasajeros registrados:")
+    for rut, nombre in zip(ruts_pasajeros, nombres_pasajeros):
+        print(f"RUT: {rut}, Nombre: {nombre}")
+
+    print("\nSeleccione el pasajero responsable:")
+    selected_index = select_option(nombres_pasajeros, return_index=True)
+    nombre_responsable = nombres_pasajeros[selected_index]
+    rut_responsable = ruts_pasajeros[selected_index]
+
+    numero_habitacion = input("Ingrese el número de la habitación a asignar: ")
+    cursor.execute("SELECT ocupada FROM Habitaciones WHERE numero_habitacion = %s", (numero_habitacion,))
+    habitacion_info = cursor.fetchone()
+
+    if habitacion_info is None:
+        print("La habitación no existe.")
+        return
+    elif habitacion_info[0] == '1':  # Assuming '1' means occupied and '0' means not occupied
+        print("La habitación no está disponible para ser asignada.")
+        return
+
+    print("\nSeleccione la reserva por:")
+    cursor.execute("SELECT solicitante FROM reserva")
+    reservas = cursor.fetchall()
+    solicitantes = [reserva[0] for reserva in reservas]
+
+    if not solicitantes:
+        print("No hay reservas disponibles.")
+        return
+
+    solicitante_index = select_option(solicitantes, return_index=True)
+    reservado_por = solicitantes[solicitante_index]
+
+    fecha_asignacion = datetime.now().date()
+    hora_asignacion = datetime.now().time()
+
+    for rut, nombre in zip(ruts_pasajeros, nombres_pasajeros):
+        sql_insert = "INSERT INTO Asignaciones (numero_habitacion, nombre_responsable, rut_responsable, pasajero, fecha_asignacion, hora_asignacion, reservado_por) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        val_insert = (numero_habitacion, nombre_responsable, rut_responsable, nombre, fecha_asignacion, hora_asignacion, reservado_por)
+        cursor.execute(sql_insert, val_insert)
+
+    cursor.execute("UPDATE Habitaciones SET ocupada = '1' WHERE numero_habitacion = %s", (numero_habitacion,))
+    conexion.commit()
+
+    print("\nRegistro de pasajeros realizado correctamente.\nVolviendo al menú anterior")
+    input("Presione Enter para continuar...")
+
+############### Ver Tabla Resumen ###############
+
+def ver_tabla_resumen():
+    clear_console()
+    print_box()
+    cursor.execute("SELECT numero_habitacion, pasajero, fecha_asignacion, hora_asignacion FROM Asignaciones")
+    asignaciones = cursor.fetchall()
+
+    tabla_resumen = PrettyTable()
+    tabla_resumen.field_names = ["Habitación", "Nombre del Pasajero", "Fecha de Check-In", "Hora de Check-In"]
+
+    for asignacion in asignaciones:
+        numero_habitacion, pasajero, fecha_asignacion, hora_asignacion = asignacion
+        tabla_resumen.add_row([numero_habitacion, pasajero, fecha_asignacion, hora_asignacion])
+
+    print("\nTabla Resumen de Pasajeros Hospedados")
+    print(tabla_resumen)
+    input("Presione Enter para continuar...")
 
 ############### Admin Menu ###############
 
