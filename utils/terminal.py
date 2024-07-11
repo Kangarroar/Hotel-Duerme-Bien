@@ -1,18 +1,14 @@
 import msvcrt
 import os
-from utils.roomsmanager import registrar_reserva, ver_lista_habitaciones, ag_habitacion
 from utils.pasajeros import registrar_pasajeros, ver_tabla_resumen
-# limpiador
+from prettytable import PrettyTable
+from utils.database import cursor, conexion
+
+############### UI ###############
+
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# error handler numerico
-
-
-# error handler hipercaracteres
-
-
-# UI Prints
 def print_options(options, selected_index):
     clear_console()
     print_box()
@@ -29,7 +25,7 @@ def print_box():
     print("└───────────────────────────────┘\n")
 
 
-# Selector with arrow keys
+# Selector
 def select_option(options, return_index=False):
     selected_index = 0
     print_options(options, selected_index)
@@ -43,14 +39,15 @@ def select_option(options, return_index=False):
             selected_index = (selected_index + 1) % len(options)
         elif key == 13:  # Enter key
             if return_index:
-                return selected_index  # Devolver el índice seleccionado
+                return selected_index
             else:
-                return options[selected_index]  # Devolver el elemento seleccionado
+                return options[selected_index]
 
         print_options(options, selected_index)
 
 
-# Menú principal
+############### UI Menu Principal ###############
+
 def main_menu():
     manage_rooms_option = '1.- Administrar habitaciones'
     register_option = '2.- Registrar pasajeros'
@@ -76,7 +73,7 @@ def main_menu():
         elif selected_option == exit_option:
             break
 
-# Manage rooms submenu
+############### Submenu de Administrar habitaciones ###############
 def manage_rooms():
     add_option = '1.- Agregar habitacion'
     delete_option = '2.- Eliminar habitacion'
@@ -96,7 +93,80 @@ def manage_rooms():
             input("Presione Enter para continuar...")
         elif selected_option == back_option:
             return
-# Menú para el administrador
+        
+############### Agregar Habitacion ###############
+
+def ag_habitacion():
+    try:
+        numero_habitacion = int(input("Ingrese el número de habitación: "))
+        cantidad_pasajeros = int(input("Ingrese la cantidad de pasajeros: "))
+    except ValueError:
+        print("Error: Debes ingresar un número entero para el número de habitación y la cantidad de pasajeros.")
+        return
+
+    orientaciones = ["Norte", "Sur", "Este", "Oeste"]
+    orientacion = select_option(orientaciones)
+    print("Selecciona la orientación de la habitación")
+    ocupada = '0'
+
+    try:
+        sql = "INSERT INTO Habitaciones (numero_habitacion, cantidad_pasajeros, orientacion, ocupada) VALUES (%s, %s, %s, %s)"
+        val = (numero_habitacion, cantidad_pasajeros, orientacion, ocupada)
+        cursor.execute(sql, val)
+        conexion.commit()
+        print("Habitacion agregada correctamente.")
+    except Exception as e:
+        print(f"Error al agregar la habitación: {e}")
+
+def ver_lista_habitaciones():
+    clear_console()
+    print_box()
+    cursor.execute("SELECT numero_habitacion, cantidad_pasajeros, orientacion, ocupada FROM Habitaciones")
+    habitaciones = cursor.fetchall()
+
+    if not habitaciones:
+        print("No hay habitaciones registradas.")
+        return
+
+    tabla = PrettyTable()
+    tabla.field_names = ["Número de Habitación", "Cantidad de Pasajeros", "Orientación", "Ocupada"]
+
+    for habitacion in habitaciones:
+        numero_habitacion, cantidad_pasajeros, orientacion, ocupada = habitacion
+        if ocupada == 0:
+            ocupada_texto = "No"
+        elif ocupada == 1:
+            ocupada_texto = "Sí"
+        else:
+            ocupada_texto = "Desconocido" #catch
+
+        tabla.add_row([numero_habitacion, cantidad_pasajeros, orientacion, ocupada_texto])
+
+    print(tabla)
+    input("Presione Enter para continuar...")
+
+
+############### Registrar Reserva ###############
+def registrar_reserva():
+    clear_console()
+    print_box()
+    solicitante = input("Ingrese el nombre del solicitante: ")
+    fecha_reserva = input("Ingrese la fecha de la reserva (YYYY-MM-DD): ")
+    fecha_checkout = input("Ingrese la fecha de checkout (YYYY-MM-DD): ")
+    precio = int(input("Ingrese el precio de la reserva: "))
+    fk_idEncargado = '0'
+
+    sql_insert = "INSERT INTO reserva (solicitante, fecha_reserva, fecha_checkout, precio, fk_idEncargado) VALUES (%s, %s, %s, %s, %s)"
+    val_insert = (solicitante, fecha_reserva, fecha_checkout, precio, fk_idEncargado)
+    cursor.execute(sql_insert)
+    conexion.commit()
+
+    print("\nReserva registrada correctamente.\nVolviendo al menú anterior")
+    input("Presione Enter para continuar...")
+
+
+############### Admin Menu ###############
+
 def admin_menu():
     add_encargado_option = '1.- Agregar encargado'
     delete_encargado_option = '2.- Eliminar encargado'
@@ -117,12 +187,15 @@ def admin_menu():
         elif selected_option == back_option:
             return
 
-
+############### After Login Handler ###############
 def after_login_menu(tipo_usuario):
     if tipo_usuario == "encargado":
         main_menu()
     elif tipo_usuario == "administrador":
         admin_menu()
+
+
+############### Login ###############
 
 from utils.database import cursor
 
