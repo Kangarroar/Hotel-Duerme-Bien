@@ -462,6 +462,7 @@ def eliminar_encargado():
 
 
 ############### After Login Handler ###############
+
 def after_login_menu(tipo_usuario):
     if tipo_usuario == "encargado":
         main_menu()
