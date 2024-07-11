@@ -1,10 +1,7 @@
 import msvcrt
 import os
-from modulos.db import *
-from modulos.habitaciones import *
-from modulos.pasajeros import *
-from modulos.reserva import *
-
+from utils.roomsmanager import registrar_reserva, ver_lista_habitaciones, ag_habitacion
+from utils.pasajeros import registrar_pasajeros, ver_tabla_resumen
 # limpiador
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -120,11 +117,45 @@ def admin_menu():
         elif selected_option == back_option:
             return
 
-# Función para dirigir al menú correspondiente después del login
+
 def after_login_menu(tipo_usuario):
     if tipo_usuario == "encargado":
         main_menu()
     elif tipo_usuario == "administrador":
         admin_menu()
 
-#####
+from utils.database import cursor
+
+def verificar_credenciales(usuario, contraseña, tipo_usuario):
+    if tipo_usuario == "encargado":
+        cursor.execute("SELECT * FROM encargado WHERE correo = %s AND contraseña = %s", (usuario, contraseña))
+    elif tipo_usuario == "administrador":
+        cursor.execute("SELECT * FROM administrador WHERE correo = %s AND contraseña = %s", (usuario, contraseña))
+    
+    result = cursor.fetchone()
+    return result is not None
+
+def login():
+    max_intentos = 3
+    intentos = 0
+    print("Como desea iniciar sesion?")
+    while intentos < max_intentos:
+        tipo_usuario = select_option(["Encargado", "Administrador"])
+
+        usuario = input("Usuario: ")
+        password = input("Contraseña: ")
+
+        if tipo_usuario == "Encargado":
+            if verificar_credenciales(usuario, password, tipo_usuario="encargado"):
+                print("Inicio de sesión como Encargado exitoso.")
+                return "encargado", usuario
+        elif tipo_usuario == "Administrador":
+            if verificar_credenciales(usuario, password, tipo_usuario="administrador"):
+                print("Inicio de sesión como Administrador exitoso.")
+                return "administrador", usuario
+        
+        intentos += 1
+        print(f"Usuario o contraseña incorrectos. Intento {intentos} de {max_intentos}")
+    
+    print("Has excedido el número máximo de intentos. Vuelve a iniciar el programa.")
+    return None, None
