@@ -87,12 +87,10 @@ def manage_rooms():
             print("Opción para agregar habitación seleccionada.")
             clear_console()
             ag_habitacion()
-            input("Presione Enter para continuar...")
         elif selected_option == delete_option:
             print("Opción para eliminar habitación seleccionada.")
             clear_console()
             eliminar_habitacion()
-            input("Presione Enter para continuar...")
         elif selected_option == back_option:
             return
         
@@ -117,8 +115,10 @@ def ag_habitacion():
         cursor.execute(sql, val)
         conexion.commit()
         print("Habitacion agregada correctamente.")
+        input("Presione Enter para continuar...")
     except Exception as e:
         print(f"Error al agregar la habitación: {e}")
+        input("Presione Enter para continuar...")
 
 
 ############### Ver Lista Habitaciones ###############
@@ -220,6 +220,7 @@ def registrar_reserva():
     
     while True:
         try:
+            ver_lista_habitaciones()
             habitacion_reservada = int(input("Ingrese el número de la habitación reservada: "))
             break
         except ValueError:
@@ -288,7 +289,8 @@ def registrar_pasajeros():
     selected_index = select_option(nombres_pasajeros, return_index=True)
     nombre_responsable = nombres_pasajeros[selected_index]
     rut_responsable = ruts_pasajeros[selected_index]
-
+    
+    ver_lista_habitaciones()
     numero_habitacion = input("Ingrese el número de la habitación a asignar: ")
     cursor.execute("SELECT ocupada FROM Habitaciones WHERE numero_habitacion = %s", (numero_habitacion,))
     habitacion_info = cursor.fetchone()
@@ -350,7 +352,7 @@ def ver_tabla_resumen():
 def admin_menu():
     add_encargado_option = '1.- Agregar encargado'
     delete_encargado_option = '2.- Eliminar encargado'
-    back_option = '3.- Volver atrás'
+    back_option = 'Cerrar sesión'
     options = [add_encargado_option, delete_encargado_option, back_option]
 
     while True:
@@ -489,7 +491,7 @@ def login():
     while intentos < max_intentos:
         tipo_usuario = select_option(["Iniciar sesión como Encargado", "Iniciar sesión como Administrador"])
 
-        usuario = input("Usuario: ")
+        usuario = input("Correo: ")
         password = input("Contraseña: ")
 
         if tipo_usuario == "Iniciar sesión como Encargado":
